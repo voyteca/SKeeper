@@ -1,0 +1,185 @@
+'
+'***********  SKeeper (Selection Keeper)  ************
+'
+'
+'Author: Wojciech Czubak
+'
+'Date: 25/07/2011
+'
+'Description: Simple macro for saving selections
+'
+'
+'*****************************************
+
+
+Sub startUp()
+    
+    Dim selectionGroups As New ShapeRange
+    Dim skName As String
+    Dim nInd As Long
+    Dim nLength As Long
+    Dim counter As Integer
+    
+    'The selection group name shoud always be at end of the object name string
+    selectionGroups.AddRange ActiveDocument.SelectableShapes.FindShapes(, , , "@name.Contains('SK:')")
+    
+    
+    'Find selection groups' names stored in shapes' names
+    Do While selectionGroups.Count > 0
+        skName = selectionGroups(1).name
+        nInd = InStr(1, skName, "SK:") + 3
+
+        skName = Mid(skName, nInd)
+        
+        SKUF.groupListLB.AddItem skName
+        
+        selectionGroups.RemoveRange selectionGroups.Shapes.FindShapes(, , , "@name.Contains('SK:" & skName & "')")
+    
+        counter = counter + 1
+    Loop
+
+End Sub
+
+Sub selectGroup(name As String, addToSelection As Boolean)
+
+    Dim group As New ShapeRange
+    
+    'search for shapes using cql (Corel Query Language)
+    group.AddRange ActiveDocument.SelectableShapes.FindShapes(, , , "@name.Contains('SK:" & name & "')")
+    
+    If group.Shapes.Count = 0 Then Exit Sub
+    
+    If Not addToSelection Then ActiveDocument.ClearSelection
+    
+    If group(1).Selected Then
+        group.RemoveFromSelection
+    Else
+        group.addToSelection
+    End If
+    
+End Sub
+
+Sub createNewGroup()
+    'check wheter any shape is selected, if not exits sub
+    If ActiveSelection.Shapes.Count = 0 Then
+        MsgBox "Nothing selected"
+        Exit Sub
+    End If
+    
+    Dim gr As New ShapeRange
+    Dim newName As String
+    Dim defaultName As String
+    Dim SKind As Integer
+    Dim groupExists As Boolean
+    
+    gr.AddRange ActiveSelection.Shapes.All
+    defaultName = getDefaultGroupName
+    
+    groupExists = True
+    
+    Do While groupExists
+        newName = InputBox("Enter name for new selection group", "SKeeper - New selection group", defaultName)
+        newName = Trim(newName)
+        
+        'if pressed 'Cancel' or Esc key or text field is empty in InputBox then exits sub
+        If newName = "" Then Exit Sub
+        groupExists = groupNameExists(newName)
+        If groupExists Then MsgBox "Group name already exists!", vbInformation
+    Loop
+
+    addShapeToGroup gr, newName
+
+    SKUF.groupListLB.AddItem newName
+    
+End Sub
+
+Function getDefaultGroupName() As String
+
+    Dim dName As String
+    Dim gNumber As Integer
+    Dim names As String
+    
+    gNumber = SKUF.groupListLB.ListCount + 1
+    
+    'create the string containing all group names that will be used to compare for existance with new default name
+    For i = 0 To entriesQty - 1
+        names = names + SKUF.groupListLB.List(i) + vbCrLf
+    Next i
+    
+    dName = "SK-group-" & gNumber
+    
+    Do While InStr(1, names, dName) > 0
+        gNumber = gNumber + 1
+        dName = "SK-group-" & gNumber
+    Loop
+    
+    getDefaultGroupName = dName
+    
+End Function
+
+Function groupNameExists(name As String) As Boolean
+    
+    Dim exists As Boolean
+    
+    exists = False
+    
+    For i = 0 To SKUF.groupListLB.ListCount - 1
+        If SKUF.groupListLB.List(i) = name Then
+            exists = True
+            Exit For
+        End If
+    Next i
+    
+    groupNameExists = exists
+    
+End Function
+
+Sub deleteGroup(name As String)
+
+    Dim gr As New ShapeRange
+    Dim s As Shape
+
+    gr.AddRange ActiveDocument.SelectableShapes.FindShapes(, , , "@name.Contains('SK:" & name & "')")
+    
+    removeShapeFromGroup gr, name
+
+    SKUF.groupListLB.RemoveItem SKUF.groupListLB.ListIndex
+    
+End Sub
+
+Sub addShapeToGroup(sr As ShapeRange, name As String)
+
+    Dim s As Shape
+    
+    For Each s In sr.Shapes
+        'check if shape is assigned to any group
+        SKind = InStr(1, s.name, "SK:")
+        If SKind > 0 Then s.name = Left(s.name, SKind - 1)
+        s.name = s.name & "SK:" & name
+    Next s
+    
+End Sub
+
+Sub removeShapeFromGroup(sr As ShapeRange, name As String)
+    
+    If sr.Shapes.Count = 0 Then Exit Sub
+    Dim s As Shape
+    Dim l As Long
+    Dim n As String
+    Dim tn As String
+    
+    tn = "SK:" & name
+    l = Len(tn)
+    
+    For Each s In sr.Shapes
+    
+        n = s.name
+        If InStr(1, n, tn) > 0 Then
+            Mid(n, 1, l) = ""
+            s.name = Left(s.name, Len(s.name) - l)
+        End If
+    Next s
+    
+End Sub
+
+
