@@ -2,7 +2,7 @@
 
 ![alt text](https://github.com/voyteca/SKeeper/raw/master/SKeeper.png)
 
-SKeeper creates collections of shapes/objects which can be added to selection.
+ SKeeper creates collections of shapes/objects which can be added to selection.
 
 It put a registry to shape's name attribute (you can see it in Object Manager). When you click on the list with groups names it finds all shapes with the same record and adds them to selection.
 
